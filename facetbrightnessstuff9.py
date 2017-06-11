@@ -113,7 +113,7 @@ def solveforabc(xa,ya,xb,yb,xc,yc):
     solution = solve(equations)
 
     # Print which one looks most physically reasonable
-    print "found", len(solution), "solutions"
+    print("found", len(solution), "solutions")
     for i in range(len(solution)):
         if  solution[i][bmag] >= 0 and \
             solution[i][cmag] >= 0 and \

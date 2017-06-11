@@ -63,18 +63,18 @@ def getmeannormal(surf_dzgrid_dy, surf_dzgrid_dx, ixstart, ixstop, iystart, iyst
 
 # Graphics functions
 def myrectangle(draw,a,b,width=2):
-    fnt = ImageFont.truetype('Keyboard.ttf', 18)
+    #fnt = ImageFont.truetype('Keyboard.ttf', 18)
     width = 2
     draw.line(((a[0],a[1]),(a[0],b[1]),(b[0],b[1]),(b[0],a[1]),(a[0],a[1])),width=width)
 
     
 # Graphics functions
 def myrectanglelabel(draw,a,b,label=''):
-    fnt = ImageFont.truetype('Keyboard.ttf', 18)
+    #fnt = ImageFont.truetype('Keyboard.ttf', 18)
     width = 2
     draw.line(((a[0],a[1]),(a[0],b[1]),(b[0],b[1]),(b[0],a[1]),(a[0],a[1])),width=width)
-    if label!='':
-        draw.text(a,' '+label,font=fnt)
+    #if label!='':
+    #    draw.text(a,' '+label,font=fnt)
         
 def linearFit(y, z):
     # Fitting with linearly generated sequence
