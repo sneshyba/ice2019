@@ -1,0 +1,18 @@
+&Parameters_nml
+
+!Use the exclamation point to comment things out
+!the file must begin with &FileName_nml
+!The file must end with a forward slash
+
+nysegments = 1
+nxsegments = 4
+nacross = 30
+ndown = 20
+nxstart = 210
+ny1start = 300
+
+pA = 101.04798753 , 106.958873177
+pB = 90.1823777937 , 76.3561483181
+pC = 95.8244330336 , 77.4315996502
+pD = 104.429731424 , 87.5491460912/
+!IDLE interprets these as lists and drops the captial letter
