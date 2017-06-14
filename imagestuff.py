@@ -4,7 +4,44 @@ import os
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 
+def getval2(Filename): #gets pixel values for a single bmp image
+    value = misc.imread(Filename)
+    Nx,Nz = value.shape
+    return value, Nx, Nz, Filename
+    
+def getc2(folder,namebase,imageroot): #applies getval to all four images in a set
+    detectors = 'A', 'B', 'C', 'D'
+    for det in detectors:
+        Filename = folder+namebase+imageroot + '-' + det + '.bmp'
+        #print(Filename)
+        value, Nx, Ny, Filename = getval2(Filename)
+        if det == 'A':
+            cA = value #raw bmp data
+            
+        if det == 'B':
+            cB = value
+            
+        if det == 'C':
+            cC = value
+                
+        if det == 'D':
+            cD = value   
 
+    #Getting pixel size
+    textfile = folder+namebase+imageroot+'-A'+'.txt'
+    fileref = open(textfile,"r")
+    dummy = fileref.read().split()
+    for i in range(len(dummy)):
+        test = dummy[i].find('PixelSize')
+        #print (i, test)
+        if test!=-1:
+            pixelsize = float(dummy[i][10:])/1000.
+            break
+    #pixelsize = float(dummy[16][10:])/1000 #microns
+    fileref.close()
+    dx = dy = pixelsize
+    
+    return dx,dy,cA,cB,cC,cD,Filename
 
 def getval(upperpath, image, folder): #gets pixel values for a single bmp image
     path = upperpath + folder
@@ -12,8 +49,7 @@ def getval(upperpath, image, folder): #gets pixel values for a single bmp image
     value = misc.imread(Filename)
     Nx,Nz = value.shape
     return value, Nx, Nz, Filename
-    
-    
+
 def getc(upperpath,namebase,folder): #applies getval to all four images in a set
     detectors = 'A', 'B', 'C', 'D'
     for det in detectors:

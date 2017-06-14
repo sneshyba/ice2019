@@ -5,10 +5,10 @@ DataNumber=S3400
 SampleName=
 Format=bmp
 ImageName=Figure-A.bmp
-Directory=F:\Steven Neshyba\Connor Krill\2017.06.12 BSE Ice Roughness 1\
+Directory
 Date=06/12/2017
 Time=10:42:30
-Media=HD[UPS Images ]
+Media=HD[UPS Images 
 DataSize=640x480
 PixelSize=330.7292
 SignalName=BSE
