@@ -6,9 +6,13 @@
 /
 
 &Vectors
-    xorigin = 226; yorigin = 248
-    xa = 304.;  ya = 388.
-    xb = 199.;  yb = 204.
-    xc = 377.;  yc = 161.
+    xorigin = 226
+    yorigin = 248
+    xa = 304
+    ya = 388
+    xb = 199
+    yb = 204
+    xc = 377
+    yc = 161
 /
 
