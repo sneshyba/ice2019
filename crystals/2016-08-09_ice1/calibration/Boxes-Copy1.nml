@@ -2,12 +2,12 @@
     nx1list = 360,275,205
     ny1list = 245,85,310
     labellist = '*','x','+'
-    boxsize = 200
+    boxsize = 40
 /
 
 &Vectors
     xorigin = 226
-    yorigin = 325
+    yorigin = 248
     xa = 304
     ya = 388
     xb = 199
