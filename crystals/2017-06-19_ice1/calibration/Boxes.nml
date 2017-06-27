@@ -1,6 +1,6 @@
 &Boxes
     nx1list = 459, 345,395
-    ny1list = 58, 71,250
+    ny1list = 58, 71,190
     labellist = '*','x','+'
     boxsize = 18
 /
@@ -9,7 +9,7 @@
     xorigin = 418
     yorigin = 63
     xa = 566
-    ya = 115
+    ya = 118
     xb = 262
     yb = 188
     xc = 384
