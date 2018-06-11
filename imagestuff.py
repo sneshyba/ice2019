@@ -43,14 +43,14 @@ def getc2(folder,namebase,imageroot): #applies getval to all four images in a se
     
     return dx,dy,cA,cB,cC,cD,Filename
 
-def getc2tif(folder,namebase,imageroot): #applies getval to all four images in a set
+def getc2tif(folder,namebase,imageroot): #Same as getc2, but picking up .tif files instead of .bmp files
     detectors = 'A', 'B', 'C', 'D'
     for det in detectors:
         Filename = folder+namebase+imageroot + '-' + det + '.tif'
         #print(Filename)
         value, Nx, Ny, Filename = getval2(Filename)
         if det == 'A':
-            cA = value #raw bmp data
+            cA = value #raw tif data
             
         if det == 'B':
             cB = value
