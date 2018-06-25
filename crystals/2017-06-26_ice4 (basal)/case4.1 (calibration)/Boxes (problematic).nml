@@ -7,12 +7,12 @@
 
 &Vectors
     xorigin = 100
-    yorigin = 175
+    yorigin = 170
     xa = 200
     ya = 53
     xb = 168
     yb = 362
-    xc = 13
-    yc = 151
+    xc = 30
+    yc = 60
 /
 
