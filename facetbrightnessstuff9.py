@@ -98,6 +98,7 @@ def solveforabc(xa,ya,xb,yb,xc,yc):
 
     from sympy import S, Eq, solve
     from numpy import linalg as LA
+    from numpy import abs  
 
     # This solves for the missing z-component of the vectors
     zc, cmag = S('zc cmag'.split())
@@ -115,10 +116,10 @@ def solveforabc(xa,ya,xb,yb,xc,yc):
     # Print which one looks most physically reasonable
     print("found", len(solution), "solutions")
     for i in range(len(solution)):
-        if  solution[i][bmag] >= 0 and \
-            solution[i][cmag] >= 0 and \
-            solution[i][amag] >= 0 and \
-            solution[i][zb] <= 0:
+        if  abs(solution[i][bmag]) >= 0 and \
+            abs(solution[i][cmag]) >= 0 and \
+            abs(solution[i][amag]) >= 0 and \
+            abs(solution[i][zb]) <= 0:
                 print ("physically reasonable solution is #", i)
                 #print ("solution=",solution[i])
                 isol = i
