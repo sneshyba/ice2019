@@ -116,10 +116,10 @@ def solveforabc(xa,ya,xb,yb,xc,yc):
     # Print which one looks most physically reasonable
     print("found", len(solution), "solutions")
     for i in range(len(solution)):
-        if  abs(solution[i][bmag]) >= 0 and \
-            abs(solution[i][cmag]) >= 0 and \
-            abs(solution[i][amag]) >= 0 and \
-            abs(solution[i][zb]) <= 0:
+        if  solution[i][bmag] >= 0 and \
+            solution[i][cmag] >= 0 and \
+            solution[i][amag] >= 0 and \
+            solution[i][zb] <= 0:
                 print ("physically reasonable solution is #", i)
                 #print ("solution=",solution[i])
                 isol = i
