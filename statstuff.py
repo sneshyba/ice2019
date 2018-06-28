@@ -11,12 +11,36 @@ def pWeibull(r, sigma, eta):
     return ret
 
 def pWeibullr(r, sigma, eta):
+    ''' Weibull function times r '''
     return pWeibull(r, sigma, eta)*r
 
-def bimodalfunc(r, sigma1, sigma2, N):
-    pdf1 = pWeibull(r,sigma1,1.0)*r
-    pdf2 = pWeibull(r,sigma2,1.0)*r
+def pGaussian(r, sigma):
+    ''' Gaussian function '''
+    return pWeibull(r, sigma, 1)    
+
+def pGaussianr(r, sigma):
+    ''' Gaussian function times r '''
+    return pWeibullr(r, sigma, 1)
+
+def bimodal(r, sigma1, sigma2, N):
+    ''' Bimodal Gaussian function ’’’
+    pdf1 = pWeibull(r,sigma1,1.0)
+    pdf2 = pWeibull(r,sigma2,1.0)
     return (1-N)*pdf1 + N*pdf2 
+
+def bimodalr(r, sigma1, sigma2, N):
+    ''' Bimodal Gaussian function times r’’’
+    pdf1 = pWeibullr(r,sigma1,1.0)
+    pdf2 = pWeibullr(r,sigma2,1.0)
+    return (1-N)*pdf1 + N*pdf2 
+
+
+def bimodalfunc(r, sigma1, sigma2, N):
+    ''' Bimodal Gaussian function '''
+    pdf1 = pWeibullr(r,sigma1,1.0)
+    pdf2 = pWeibullr(r,sigma2,1.0)
+    return (1-N)*pdf1 + N*pdf2 
+
 
 def sigma2meanr(sigma):
     ''' Converting sigma to <r> 
