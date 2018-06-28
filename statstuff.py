@@ -23,13 +23,13 @@ def pGaussianr(r, sigma):
     return pWeibullr(r, sigma, 1)
 
 def bimodal(r, sigma1, sigma2, N):
-    ''' Bimodal Gaussian function ’’’
+    ''' Bimodal Gaussian function '''
     pdf1 = pWeibull(r,sigma1,1.0)
     pdf2 = pWeibull(r,sigma2,1.0)
     return (1-N)*pdf1 + N*pdf2 
 
 def bimodalr(r, sigma1, sigma2, N):
-    ''' Bimodal Gaussian function times r’’’
+    ''' Bimodal Gaussian function times r'''
     pdf1 = pWeibullr(r,sigma1,1.0)
     pdf2 = pWeibullr(r,sigma2,1.0)
     return (1-N)*pdf1 + N*pdf2 
