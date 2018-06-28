@@ -183,3 +183,51 @@ def myrotation_matrix(axis, theta_deg):
     return np.asmatrix(np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
                      [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
                      [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]]))
+
+import itertools
+def polyfit2d(x, y, z, order=3, linear=False):
+    """Two-dimensional polynomial fit. Based uppon code provided by 
+    Joe Kington.
+
+    References:
+        http://stackoverflow.com/questions/7997152/
+            python-3d-polynomial-surface-fit-order-dependent/7997925#7997925
+
+    """
+    ncols = (order + 1)**2
+    G = np.zeros((x.size, ncols))
+    ij = itertools.product(range(order+1), range(order+1))
+    for k, (i,j) in enumerate(ij):
+        G[:,k] = x**i * y**j
+        if linear & (i != 0.) & (j != 0.):
+            G[:, k] = 0
+    m, _, _, _ = np.linalg.lstsq(G, z)
+    return m
+
+def polyval2d(x, y, m):
+    """Values to two-dimensional polynomial fit. Based upon code 
+        provided by Joe Kington.
+    """
+    order = int(np.sqrt(len(m))) - 1
+    ij = itertools.product(range(order+1), range(order+1))
+    z = np.zeros_like(x)
+    for a, (i,j) in zip(m, ij):
+        z += a * x**i * y**j
+    return z
+
+
+def flatten(surf_xseggrid, surf_yseggrid, surf_zseggrid, Rotx):
+    # Rotates every point in the dataset
+    thisshape = np.shape(surf_xseggrid)
+    surf_xseggridp = np.zeros(thisshape)
+    surf_yseggridp = np.zeros(thisshape)
+    surf_zseggridp = np.zeros(thisshape)
+    for ix in range (thisshape[1]):
+        for iy in range (thisshape[0]):
+            vec = np.matrix([surf_xseggrid[iy,ix],surf_yseggrid[iy,ix],surf_zseggrid[iy,ix]]).T
+            vecp = Rotx*vec
+            surf_xseggridp[iy,ix] = vecp[0]
+            surf_yseggridp[iy,ix] = vecp[1]
+            surf_zseggridp[iy,ix] = vecp[2]
+    return surf_xseggridp, surf_yseggridp, surf_zseggridp
+
