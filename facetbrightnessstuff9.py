@@ -8,6 +8,7 @@ from numpy.linalg.linalg import norm
 ''' A copy of fcb4, but CUDA stuff is elective. '''
 
 import algebrastuff as ags; #reload(ags)
+import gradstuff as gds
 
 def rdfbfile(filename):
 
@@ -770,7 +771,10 @@ def getnextz(\
     term3 = ags.dot2(KN, ags.dot(Se_inv, (delta_c+ags.dot(KN,(z_last-za)))))
     z_next = za + np.linalg.solve(term2,term3) # same as term2\term3
     dz = z_next - z_last
-    di2 = ags.dot3(term2, dz)
+    di2 = ags.dot3(term2, dz)[0,0]
+    
+    # Some error estimates
+    print ('<diff>, std(diff), di2 =', np.mean(delta_c), np.std(delta_c), di2)
 
     # Get out
     return z_next, di2
@@ -797,7 +801,7 @@ def getnextz_iterate(\
             KCxrule, KCyrule, \
             KDxrule, KDyrule)
         z_last = copy.copy(z_next)
-        print ("iteration, di2", i, di2)
+        #print ("iteration, di2", i, di2)
         if di2<tolerance:
              break
     return z_next
@@ -834,10 +838,8 @@ def retrievesegment(\
     c_obs_long = matrix(reshape(c_obs_stacked.T,(nXobs*4,1)), copy=False)
 
     # Print some statistics of the observations
-    print ("statistics of observed intensities (detector B):")
-    print ("mean =", np.mean(cB_obs_long))
-    print ("max =", np.max(cB_obs_long))
-    print ("min =", np.min(cB_obs_long))
+    print ("Observed intensities (detector B):")
+    print ("mean, max, min =", np.mean(cB_obs_long),np.max(cB_obs_long),np.min(cB_obs_long))
 
     # Set-up for the inversion
     Sa_inv = np.diag(1/np.diag(Sa))
@@ -933,3 +935,129 @@ def retrievesegment(\
 #
 #    return z_next
 #
+
+def retrieveall(\
+        nmax,maxiter,tolerance,rootnoiseamp,rootapriorivar0,\
+        nsegments,nptsx,nptsy,nx1list,ny1list,nx2list,ny2list,nyxgrid,dx,dy,\
+        Calibration,cA,cB,cC,cD):
+    
+    # Extract calibration data
+    pA=Calibration['Calibration']['pA']
+    pB=Calibration['Calibration']['pB']
+    pC=Calibration['Calibration']['pC']
+    pD=Calibration['Calibration']['pD']
+
+    
+    # Set up a grid of surface normal vectors and the backscatter response on them
+    nxmid = int(nptsx/2); #print nxmid
+    nymid = int(nptsy/2); #print nymid
+    nxi = np.linspace(-nmax,nmax,nptsx); dnx = nxi[1]-nxi[0]
+    nyi = np.linspace(-nmax,nmax,nptsy); dny = nyi[1]-nyi[0]
+    nxigrid,nyigrid = np.meshgrid(nxi,nyi)
+    theta = 15*np.pi/180
+    sA = (-nxigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+    sB = (-nyigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+    sC = (+nxigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+    sD = (+nyigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+
+    # Set up the grids     
+    BSgridA = np.polyval(pA,sA)
+    BSgridB = np.polyval(pB,sB)
+    BSgridC = np.polyval(pC,sC)
+    BSgridD = np.polyval(pD,sD)
+                
+    # Generating the response function for each detector
+    BSgridN = [BSgridA, BSgridB, BSgridC, BSgridD]
+    BSgridL = ['A', 'B', 'C', 'D']
+    BSmax = 150 # this for display purposes
+    print('nxigrid.shape=',nxigrid.shape)
+
+    # Set up interpolators for detector responses
+    Arule, Brule, Crule, Drule, \
+    KAxrule, KAyrule, KBxrule, KByrule, KCxrule, KCyrule, KDxrule, KDyrule =\
+    setupdetectorresponse2(BSgridA, BSgridB, BSgridC, BSgridD, nxi, nyi, dnx, dny)
+                
+    # Create a blank slate
+    solutionshape = cA.shape
+    solution = np.zeros(solutionshape)
+                
+    # Define the variance in the observations (BS units^2)
+    #print('Std deviation in input signal is', rootnoiseamp)
+    noiseamp = rootnoiseamp**2
+
+    # Define parameters determining the variance in the a priori (microns^2)
+    #print('Std deviation in a priori is', rootapriorivar0)
+    apriorivar0 = rootapriorivar0**2
+
+    # Create the initial a priori variance
+    apriorivar = np.ones(cA.shape)*apriorivar0
+
+    # Create the initial a priori set
+    aprioriset = np.zeros(cA.shape)
+                
+    # Loop to retrieve each segment
+    for isegment in range(nsegments):
+
+        # Choose the particular location of the dataset to analyze
+        nx1=nx1list[isegment]; nx2=nx2list[isegment]; nx = nx2-nx1+1
+        ny1=ny1list[isegment]; ny2=ny2list[isegment]; ny = ny2-ny1+1
+
+        # Construct gradients
+        Ny_unscaled, Nx_unscaled = gds.makeNxNy(ny,nx)
+        Ny = Ny_unscaled/dy
+        Nx = -Nx_unscaled/dx #fixing x inversion
+
+        # Number of observations
+        nobs = (nx-1)*(ny-1)*4
+
+        # Number of desired points (heights)
+        nzpts = ny*nx-1
+
+        # Extract the a priori variance
+        vartemp = apriorivar[ny1:ny2+1,nx1:nx2+1]
+        vartemp_long = np.reshape(vartemp,nzpts+1,0)
+        Sa = np.diag(vartemp_long[:-1]); #print "apriorivar", shape(Sa)
+
+        # Extract the starting z
+        settemp = solution[ny1:ny2+1,nx1:nx2+1]
+        settemp_long = np.reshape(settemp,nzpts+1,0)
+        settemp_longminus1 = settemp_long[:-1]
+        z_start = np.matrix(settemp_longminus1).T; #print "aprioriset", shape(z_start)
+        z_start = z_start*0.0; #print "aprioriset", shape(z_start)
+
+        # Construct the variance in observation + model
+        Se = np.matrix(np.eye(nobs))*noiseamp # Variance in observation + model (c)
+
+        # Do the retrieval
+        print('')
+        print("for", nx1, ny1)
+        print("Segment:", isegment+1, "of", nsegments)
+        z_retrieved = retrievesegment(\
+            nx1,ny1,nx2,ny2,cA,cB,cC,cD,\
+            Sa,Se,z_start,maxiter,tolerance,\
+            Nx,Ny,\
+            Arule, Brule, Crule, Drule,\
+            KAxrule, KAyrule, \
+            KBxrule, KByrule, \
+            KCxrule, KCyrule, \
+            KDxrule, KDyrule)
+
+        if isegment == 0:
+            solution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+        else:
+            nextsolution = np.zeros(cA.shape)
+            nextsolution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+            overlap = []
+            for i in range(isegment):
+                nextoverlap = list( set(nyxgrid[i])&set(nyxgrid[isegment]) )
+                overlap = overlap + nextoverlap
+                Noverlap = len(overlap); 
+            print("Noverlap =", Noverlap)
+            diff = 0.0
+            for j in range(Noverlap):
+                diff += nextsolution[overlap[j]] - solution[overlap[j]]
+            diffavg = diff/Noverlap
+            z_retrieved -= diffavg
+            solution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+            
+    return solution
