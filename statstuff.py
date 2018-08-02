@@ -198,23 +198,6 @@ def makehistogram(\
             hbins_accum.append(hbins)
             print ('Accumulating ...', isegment+1, 'out of', len(accumlist))
 
-#             meanrsub_accum.append(thismeanrsub)
-#             zsigma_accum.append(thissigma)
-#             Z2_accum.append(thismeanZ2)
-
-#             Zsquared_long = np.reshape(Zsquared,np.size(Zsquared))
-#             Zsquared_accum = np.append(Zsquared_accum,Zsquared_long)
-
-#             rsub_long = np.reshape(rsub,np.size(rsub))
-#             rsub_accum = np.append(rsub_accum,rsub_long)
-
-#             print('Accumulating ...', np.shape(Zsquared), np.shape(Zsquared_long), np.shape(Zsquared_accum))
-
-#     for isegment in range(len(meanrsublist)):
-#         print('segment, #pts, <r>, sigma =', \
-#              isegment, np.size(rsub), meanrsublist[isegment], Zsigmalist[isegment])
-
-
     # Combine the histograms of individual segments
     hbins_total = np.sum((hbins_accum),axis=0)/len(accumlist)
     norm = np.trapz(hbins_total,np.log(rbinsW)); print('Norm =', norm)
