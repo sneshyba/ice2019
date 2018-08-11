@@ -1,0 +1,18 @@
+&Boxes
+    nx1list = 174,163,440
+    ny1list = 47,235,200
+    labellist = '*','x','+'
+    boxsize = 30
+/
+
+&Vectors
+    xorigin = 575
+    yorigin = 257
+    xa = 480
+    ya = 360
+    xb = 525
+    yb = 105
+    xc = 567
+    yc = 380
+/
+
