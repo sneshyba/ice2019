@@ -243,14 +243,15 @@ def extractflat(npzfile,dx,dy):
     ny2list = npzfile['ny2list']
     solution = npzfile['solution']
     nsegments = len(nx1list)
-    xseggrid = []
-    yseggrid = []
-    zseggrid = []
+    xseggridtot = []
+    yseggridtot = []
+    zseggridtot = []
+    surf_xseggridtot = []
+    surf_yseggridtot = []
+    surf_zseggridtot = []
     thetazpptot = []
-    theta
     
     for isegment in range(0,nsegments):
-    #for isegment in range(0,2):
 
         # Extract this segment
         nx1=nx1list[isegment]; nx2=nx2list[isegment]; nxsegment = nx2-nx1+1
@@ -328,9 +329,12 @@ def extractflat(npzfile,dx,dy):
         sub_zseggrid_long = griddata(points, values, (sub_xseggrid, sub_yseggrid), method='cubic')
         sub_zseggrid = np.reshape(sub_zseggrid_long,(nsuby, nsubx))
         
-        xseggrid.append(sub_xseggrid)
-        yseggrid.append(sub_yseggrid)
-        zseggrid.append(sub_zseggrid)        
+        xseggridtot.append(sub_xseggrid)
+        yseggridtot.append(sub_yseggrid)
+        zseggridtot.append(sub_zseggrid)
+        surf_xseggridtot.append(surf_xseggrid)
+        surf_yseggridtot.append(surf_yseggrid)
+        surf_zseggridtot.append(surf_zseggrid)
         
-    return xseggrid, yseggrid, zseggrid
+    return xseggridtot, yseggridtot, zseggridtot, surf_xseggridtot, surf_yseggridtot, surf_zseggridtot
 
