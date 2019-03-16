@@ -204,3 +204,31 @@ def numpy2stl(A, fn, scale=0.1, mask_val=None, ascii=False,
         facets = facets * float(max_height) / zsize
 
     writeSTL(facets, fn, ascii=ascii)
+    
+def addskirt(settemp,bottom=1000):
+    # get the dimensions 
+    nx,ny = np.shape(settemp)
+
+    # define the bottom of the skirt
+    if bottom==1000: 
+        bottom = np.min(settemp) -(np.max(settemp) - np.min(settemp))/4
+
+    # add a row to beginning 
+    startrow = np.ones(ny)*bottom; #print(np.shape(startrow))
+
+    # add a row to the end
+    settemp1 = np.vstack ((startrow,settemp,startrow)); #print(np.shape(settemp1))
+    settemp2 = np.transpose(settemp1); #print(np.shape(settemp2))
+
+    # add a column to beginning
+    newcol = np.ones(nx+2)*bottom; #print(np.shape(newcol))
+
+    # add a column to the end
+    settemp3 = np.vstack ((newcol,settemp2,newcol))
+    settemp4 = np.transpose (settemp3)
+
+    # Update the dimensions
+    #nytot, nxtot = np.shape(settemp4)
+    #print (nxtot,nytot)
+    
+    return settemp4
