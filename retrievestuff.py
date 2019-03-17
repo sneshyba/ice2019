@@ -97,8 +97,10 @@ def get_heights(nsegments,nx1list,nx2list,ny1list,ny2list,dx,dy,solution,isegmen
         return sub_zseggrid
 
     
-def getrhoofz2(sollast_in,dx,dy,nbins=10,bins=[],transposeflag=False):
-    
+def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False):
+
+    #print("from getrhoofz2: ", dx, dy, nbins, Z2bins)
+
     # Transpose, if flagged
     if transposeflag:
         sollast = sollast_in.T
@@ -115,11 +117,13 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,bins=[],transposeflag=False):
     
     # Get the probability distribution
     Z2flat = np.reshape(Z2, (Nx-1)*(Ny-1))
+    #print("from getrhoofz2: ", np.max(Z2flat), np.min(Z2flat))
     
-    if len(bins)==0:
+    if len(Z2bins)==0:
         counts, bins = np.histogram(Z2flat,bins=nbins)
     else:
-        counts, bins = np.histogram(Z2flat,bins=bins)
+        #print("from getrhoofz2: ", Z2bins)
+        counts, bins = np.histogram(Z2flat,bins=Z2bins)
     
     # Normalizes
     #counts = counts/np.sum(counts)
