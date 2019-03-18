@@ -117,6 +117,7 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False):
     
     # Get the probability distribution
     Z2flat = np.reshape(Z2, (Nx-1)*(Ny-1))
+    meanZ2 = np.mean(Z2flat)
     #print("from getrhoofz2: ", np.max(Z2flat), np.min(Z2flat))
     
     if len(Z2bins)==0:
@@ -132,4 +133,4 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False):
 #     logcounts = np.log(counts[subset])
 
     #plt.semilogy(newbins, counts, 'o', label='Numerical result')
-    return counts, newbins
+    return counts, newbins, meanZ2
