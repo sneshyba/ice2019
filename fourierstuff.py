@@ -13,8 +13,8 @@ def FT(grid,x,y):
     Ny, Nx = np.shape(grid)
     dx = x[1]-x[0]
     dy = y[1]-y[0]
-    kx = np.fft.fftfreq(Nx)*np.pi/dx
-    ky = np.fft.fftfreq(Ny)*np.pi/dy
+    kx = np.fft.fftfreq(Nx)*2*np.pi/dx
+    ky = np.fft.fftfreq(Ny)*2*np.pi/dy
     kxshift = np.fft.fftshift(kx)
     kyshift = np.fft.fftshift(ky)
     return grid_FTshift, kxshift, kyshift
