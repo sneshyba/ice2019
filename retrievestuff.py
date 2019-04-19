@@ -5,6 +5,7 @@ import copy
 import time
 import imagestuff as ims
 from scipy.interpolate import griddata
+from scipy.stats import t as tvalue
 #import importlib; importlib.reload(ims)
 
 
@@ -97,7 +98,7 @@ def get_heights(nsegments,nx1list,nx2list,ny1list,ny2list,dx,dy,solution,isegmen
         return sub_zseggrid
 
     
-def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False):
+def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0):
 
     #print("from getrhoofz2: ", dx, dy, nbins, Z2bins)
 
@@ -121,16 +122,43 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False):
     #print("from getrhoofz2: ", np.max(Z2flat), np.min(Z2flat))
     
     if len(Z2bins)==0:
-        counts, bins = np.histogram(Z2flat,bins=nbins)
+            counts, bins = np.histogram(Z2flat,bins=nbins)
     else:
-        #print("from getrhoofz2: ", Z2bins)
-        counts, bins = np.histogram(Z2flat,bins=Z2bins)
+          #print("from getrhoofz2: ", Z2bins)
+            counts, bins = np.histogram(Z2flat,bins=Z2bins)
+    Z2bins = bins
     
-    # Normalizes
-    #counts = counts/np.sum(counts)
-    newbins = bins[1:]
+    # Loop over subsets to get an uncertainty analysis
+    if (levels > 0):
+        print('Original = ', np.size(Z2flat))
+        for ilevel in range(levels):
+            ilevelp = ilevel+2
+            counts_accum = []
+            for modfactor in range(ilevelp):
+                Z2flat_subset = Z2flat[modfactor::ilevelp]
+                counts, bins = np.histogram(Z2flat_subset,bins=Z2bins)
+                if ilevelp == levels+1:
+                    print(ilevelp,modfactor,np.size(Z2flat_subset),counts)
+                if(modfactor == 0):
+                    counts_accum = counts
+                else:
+                    counts_accum = np.vstack((counts_accum,counts))
+    newbins = Z2bins[1:]
+    if (levels == 0):    
+        normalizer = np.sum(counts)
+        counts = counts/normalizer
+        error = []
+    else:
+        counts = np.mean(counts_accum,axis=0)
+        normalizer = np.sum(counts)
+        counts = counts/normalizer
+        print('ilevelp =', ilevelp)
+        tval = tvalue.interval(0.95, ilevelp, loc=0, scale=1)[1]
+        print('ilevelp, t =', ilevelp, tval)
+        error = np.std(counts_accum,axis=0)/np.sqrt(ilevelp)/normalizer*tval
+    
 #     subset = np.array([i for i in range(4,len(bins))])-1
 #     logcounts = np.log(counts[subset])
 
     #plt.semilogy(newbins, counts, 'o', label='Numerical result')
-    return counts, newbins, meanZ2
+    return counts, newbins, meanZ2, error
