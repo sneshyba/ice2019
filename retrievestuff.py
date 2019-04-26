@@ -143,11 +143,12 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
                     counts_accum = counts
                 else:
                     counts_accum = np.vstack((counts_accum,counts))
-    newbins = Z2bins[1:]
+    newbins = Z2bins[0:-1]
     if (levels == 0):    
         normalizer = np.sum(counts)
         counts = counts/normalizer
-        error = []
+        return counts, newbins, meanZ2
+
     else:
         counts = np.mean(counts_accum,axis=0)
         normalizer = np.sum(counts)
@@ -156,9 +157,5 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
         tval = tvalue.interval(0.95, ilevelp, loc=0, scale=1)[1]
         print('ilevelp, t =', ilevelp, tval)
         error = np.std(counts_accum,axis=0)/np.sqrt(ilevelp)/normalizer*tval
+        return counts, newbins, meanZ2, error
     
-#     subset = np.array([i for i in range(4,len(bins))])-1
-#     logcounts = np.log(counts[subset])
-
-    #plt.semilogy(newbins, counts, 'o', label='Numerical result')
-    return counts, newbins, meanZ2, error
