@@ -100,8 +100,6 @@ def get_heights(nsegments,nx1list,nx2list,ny1list,ny2list,dx,dy,solution,isegmen
     
 def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0):
 
-    #print("from getrhoofz2: ", dx, dy, nbins, Z2bins)
-
     # Transpose, if flagged
     if transposeflag:
         sollast = sollast_in.T
@@ -118,13 +116,20 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
     
     # Get the probability distribution
     Z2flat = np.reshape(Z2, (Nx-1)*(Ny-1))
-    meanZ2 = np.mean(Z2flat)
-    #print("from getrhoofz2: ", np.max(Z2flat), np.min(Z2flat))
+    counts, newbins, meanZ2, error = getrhoofz2flat(Z2flat,nbins,Z2bins,levels)
     
+    # Get out
+    return counts, newbins, meanZ2, Z2flat, error
+    
+def getrhoofz2flat(Z2flat,nbins,Z2bins,levels):
+
+    # Average of Z2
+    meanZ2 = np.mean(Z2flat)
+    
+    # Do the histogramming
     if len(Z2bins)==0:
             counts, bins = np.histogram(Z2flat,bins=nbins)
     else:
-          #print("from getrhoofz2: ", Z2bins)
             counts, bins = np.histogram(Z2flat,bins=Z2bins)
     Z2bins = bins
     
@@ -144,11 +149,12 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
                 else:
                     counts_accum = np.vstack((counts_accum,counts))
     newbins = Z2bins[0:-1]
+    
+    # Fake normalizing
     if (levels == 0):    
         normalizer = np.sum(counts)
         counts = counts/normalizer
-        return counts, newbins, meanZ2
-
+        error = 0
     else:
         counts = np.mean(counts_accum,axis=0)
         normalizer = np.sum(counts)
@@ -157,5 +163,7 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
         tval = tvalue.interval(0.95, ilevelp, loc=0, scale=1)[1]
         print('ilevelp, t =', ilevelp, tval)
         error = np.std(counts_accum,axis=0)/np.sqrt(ilevelp)/normalizer*tval
-        return counts, newbins, meanZ2, error
+
+    return counts, newbins, meanZ2, error
+
     
