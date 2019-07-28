@@ -12,11 +12,11 @@ def getval2(Filename): #gets pixel values for a single bmp image
     Nx,Nz = value.shape
     return value, Nx, Nz, Filename
     
-def getc2(folder,namebase,imageroot): #applies getval to all four images in a set
+def getc2(folder,namebase,imageroot,mydet='D'): #applies getval to all four images in a set
     detectors = 'A', 'B', 'C', 'D'
     for det in detectors:
         Filename = folder+namebase+imageroot + '-' + det + '.bmp'
-        #print(Filename)
+        print(Filename)
         value, Nx, Ny, Filename = getval2(Filename)
         if det == 'A':
             cA = value #raw bmp data
@@ -43,6 +43,7 @@ def getc2(folder,namebase,imageroot): #applies getval to all four images in a se
     #pixelsize = float(dummy[16][10:])/1000 #microns
     fileref.close()
     dx = dy = pixelsize
+    Filename = folder+namebase+imageroot + '-' + mydet + '.bmp'
     
     return dx,dy,cA,cB,cC,cD,Filename
 
@@ -137,17 +138,18 @@ def getmeannormal(surf_dzgrid_dy, surf_dzgrid_dx, ixstart, ixstop, iystart, iyst
 # Graphics functions
 def myrectangle(draw,a,b,width=2):
     #fnt = ImageFont.truetype('Keyboard.ttf', 18)
-    width = 2
+    #width = 2
     draw.line(((a[0],a[1]),(a[0],b[1]),(b[0],b[1]),(b[0],a[1]),(a[0],a[1])),width=width)
 
     
 # Graphics functions
 def myrectanglelabel(draw,a,b,label=''):
-    #fnt = ImageFont.truetype('Keyboard.ttf', 18)
-    width = 2
+    fnt = ImageFont.truetype('Keyboard.ttf', 24)
+    width = 4
     draw.line(((a[0],a[1]),(a[0],b[1]),(b[0],b[1]),(b[0],a[1]),(a[0],a[1])),width=width)
-    #if label!='':
-    #    draw.text(a,' '+label,font=fnt)
+    if label!='':
+       draw.text(a,' '+label,font=fnt)
+       #draw.text(a,' '+label)
         
 def linearFit(y, z):
     # Fitting with linearly generated sequence
@@ -204,6 +206,7 @@ def polyfit2d(x, y, z, order=3, linear=False):
         G[:,k] = x**i * y**j
         if linear & (i != 0.) & (j != 0.):
             G[:, k] = 0
+    #m, _, _, _ = np.linalg.lstsq(G, z)
     m, _, _, _ = np.linalg.lstsq(G, z, rcond=-1)
     return m
 
@@ -269,7 +272,7 @@ def extractflat(npzfile,dx,dy):
                       linear=True,order=1)
 
         # Get the angles of the plane
-        dzdy = m[1]; thetay = np.arctan(dzdy)*180/np.pi; #print 'y:', thetay
+        dzdy = m[1]; thetay = np.arctan(dzdy)*180/np.pi; print ('y:', thetay)
 
         # Get rotation matrix & flatten in one direction
         Roty = myrotation_matrix([1,0,0], -thetay)
@@ -284,7 +287,7 @@ def extractflat(npzfile,dx,dy):
                       linear=True,order=1)
 
         # Get the angle of the plane in another direction
-        dzdx = mp[2]; thetaxp = np.arctan(dzdx)*180/np.pi; #print 'x:', thetaxp
+        dzdx = mp[2]; thetaxp = np.arctan(dzdx)*180/np.pi; print ('x:', thetaxp)
 
         # Get rotation matrix & flatten in another direction
         Rotxp = myrotation_matrix([0,1,0], thetaxp)
@@ -338,3 +341,68 @@ def extractflat(npzfile,dx,dy):
         
     return xseggridtot, yseggridtot, zseggridtot, surf_xseggridtot, surf_yseggridtot, surf_zseggridtot
 
+class ExtlvecxAngleManager:
+    def __init__(self, xorigin=0,yorigin=0,alpha=0,beta=0,gamma=0,scale=200):
+        # Specify the origin and Euler angles
+        self.xorigin = xorigin
+        self.yorigin = yorigin
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.scale = scale
+        
+
+    def calculate_starts(self):
+        # Lay out three vectors defining the orientation of the crystal
+        # (before rotation)
+        self.cvec_start = np.matrix([0,0,-1]).T; 
+        self.avec_start = np.matrix([1,0,0]).T; 
+        #Rot60 = ims.myrotation_matrix(self.cvec_start,-120)
+        Rot60 = myrotation_matrix(self.cvec_start,-120)
+        self.bvec_start = Rot60*self.avec_start;
+
+    def construct_rotation_matrices(self):
+        # Construct the rotation matrix
+        Rotalpha = myrotation_matrix(np.matrix([0,0,1]).T,self.alpha)
+        Rotbeta  = myrotation_matrix(np.matrix([1,0,0]).T,self.beta)
+        Rotgamma = myrotation_matrix(np.matrix([0,0,1]).T,self.gamma)
+        RotEuler = Rotgamma*Rotbeta*Rotalpha
+
+        # Make the new vectors
+        self.avec = RotEuler*self.avec_start
+        self.bvec = RotEuler*self.bvec_start
+        self.cvec = RotEuler*self.cvec_start
+
+    def makeLine(self, x0, x1, y0, y1):
+        """Turns endpoint coords into a graph-usable linspace format."""
+        if x1<x0:
+            x0,x1=x1,x0
+            y0,y1=y1,y0
+        x = np.linspace(x0,x1,num=100)
+        y = np.linspace(y0,y1,num=100)
+        return x,y
+
+    def makeLines(self):
+        """Returns graph-usable data for each of the three calibration lines."""
+
+        # convert each line (A, B, and C) coordinite endpoints into arrays.
+        xdataA, ydataA = self.makeLine(self.xorigin,
+                                       self.xorigin+self.avec[0,0]*self.scale,
+                                       self.yorigin,
+                                       self.yorigin+self.avec[1,0]*self.scale)
+        xdataB, ydataB = self.makeLine(self.xorigin,
+                                       self.xorigin+self.bvec[0,0]*self.scale,
+                                       self.yorigin,
+                                       self.yorigin+self.bvec[1,0]*self.scale)
+        xdataC, ydataC = self.makeLine(self.xorigin,
+                                       self.xorigin+self.cvec[0,0]*self.scale,
+                                       self.yorigin,
+                                       self.yorigin+self.cvec[1,0]*self.scale)
+
+        return xdataA,ydataA,xdataB,ydataB,xdataC,ydataC
+
+    
+    def update(self):
+
+        # update rotation matrices
+        self.construct_rotation_matrices()
