@@ -461,7 +461,8 @@ def getinfomatrix(cseg):
     infomatrix = np.matrix(np.zeros(shape=(size,size)))
     for i in range(len(csegrel)):
         for j in range(i,len(csegrel)):
-            infomatrix[i,j] = np.mean(csegrel[i]*csegrel[j])
+            product = np.array(csegrel[i])*np.array(csegrel[j])
+            infomatrix[i,j] = np.mean(product)
             
 #     cAseg = cA[ny1:ny2,nx1:nx2]; cAsegmean = np.mean(cAseg); print('<cA> =',cAsegmean)
 #     cBseg = cB[ny1:ny2,nx1:nx2]; cBsegmean = np.mean(cBseg); print('<cB> =',cBsegmean)
