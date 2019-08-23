@@ -463,6 +463,18 @@ def getinfomatrix(cseg):
         for j in range(i,len(csegrel)):
             product = np.array(csegrel[i])*np.array(csegrel[j])
             infomatrix[i,j] = np.mean(product)
+    return infomatrix
+
+def getinfoscore(cseg):
+    info = getinfomatrix(cseg)
+    score = 0; count = 0
+    for i in range(len(cseg)):
+        for j in range(i+1,len(cseg)):
+            count += 1
+            nextone = info[i,j]
+            print(i,j,nextone*100)
+            score += nextone**2
+    return score**.5*100
             
 #     cAseg = cA[ny1:ny2,nx1:nx2]; cAsegmean = np.mean(cAseg); print('<cA> =',cAsegmean)
 #     cBseg = cB[ny1:ny2,nx1:nx2]; cBsegmean = np.mean(cBseg); print('<cB> =',cBsegmean)
@@ -483,8 +495,6 @@ def getinfomatrix(cseg):
 #     infomatrix[2,2] = np.mean(cCrel*cCrel)
 #     infomatrix[2,3] = np.mean(cCrel*cDrel)
 #     infomatrix[3,3] = np.mean(cDrel*cDrel)
-
-    return infomatrix
 
 def Weibull(Z2,sigma2W,etaW):
     # Getting the Weibull distribution
