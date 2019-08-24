@@ -121,6 +121,22 @@ def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0)
     # Get out
     return counts, newbins, meanZ2, Z2flat, error
     
+def getmeanz2(sollast,dx,dy):
+
+    # Dimensions 
+    Nx, Ny = np.shape(sollast)
+    
+    # Calculate the gradient squared (Z2)
+    dzdx = np.diff(sollast, axis=0)/dx
+    dzdy = np.diff(sollast, axis = 1)/dy #we are not sure which axis is which
+    Z2 = dzdx[:, 1:]**2+dzdy[1:, :]**2
+    
+    # Get the mean
+    meanZ2 = np.mean(Z2)
+    
+    # Get out
+    return meanZ2
+    
 def getrhoofz2flat(Z2flat,nbins,Z2bins,levels):
 
     # Average of Z2
