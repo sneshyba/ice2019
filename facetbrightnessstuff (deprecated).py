@@ -1,14 +1,4 @@
 import numpy as np
-import copy
-import time
-import imagestuff as ims
-import statstuff as sts
-from scipy.interpolate import griddata
-from scipy.interpolate import interp2d
-from scipy.stats import t as tvalue
-
-#import importlib; importlib.reload(ims)
-import numpy as np
 import scipy
 from numpy import matrix, cross, zeros, reshape, vstack, hstack, empty, roll, shape
 #import scipy.interpolate
@@ -752,179 +742,6 @@ def getnextz_iterate(\
              break
     return z_next
 
-
-def get_heights(nsegments,nx1list,nx2list,ny1list,ny2list,dx,dy,solution,isegment):
-
-        # Extract this segment
-        nx1=nx1list[isegment]; nx2=nx2list[isegment]; nxsegment = nx2-nx1+1
-        ny1=ny1list[isegment]; ny2=ny2list[isegment]; nysegment = ny2-ny1+1
-        surf_xseg = np.linspace(0,(nxsegment-1)*dx,nxsegment); 
-        surf_yseg = np.linspace(0,(nysegment-1)*dy,nysegment); 
-        surf_xseggrid, surf_yseggrid = np.meshgrid(surf_xseg,surf_yseg) # 1st index is y, 2nd is x
-        surf_zseggrid = copy.copy(np.flipud(solution[ny1:ny2+1,nx1:nx2+1])) # This flips the y-coordinate
-
-        # Fit a plane to the data and adjust data to start at the origin
-        m = ims.polyfit2d(surf_xseggrid.reshape(nysegment*nxsegment), \
-                          surf_yseggrid.reshape(nysegment*nxsegment), \
-                          surf_zseggrid.reshape(nysegment*nxsegment), \
-                          linear=True,order=1)
-
-        # Get the angles of the plane
-        dzdy = m[1]; thetay = np.arctan(dzdy)*180/np.pi; #print 'y:', thetay
-
-        # Get rotation matrix & flatten in one direction
-        Roty = ims.myrotation_matrix([1,0,0], -thetay)
-        surf_xseggridp, surf_yseggridp, surf_zseggridp = \
-            ims.flatten(surf_xseggrid, surf_yseggrid, surf_zseggrid, Roty)
-
-        # Fit a plane to the data and adjust data to start at the origin
-        mp = ims.polyfit2d(surf_xseggridp.reshape(nysegment*nxsegment), \
-                           surf_yseggridp.reshape(nysegment*nxsegment), \
-                           surf_zseggridp.reshape(nysegment*nxsegment), \
-                           linear=True,order=1)
-
-        # Get the angle of the plane in another direction
-        dzdx = mp[2]; thetaxp = np.arctan(dzdx)*180/np.pi; #print 'x:', thetaxp
-
-        # Get rotation matrix & flatten in another direction
-        Rotxp = ims.myrotation_matrix([0,1,0], thetaxp)
-        surf_xseggridpp, surf_yseggridpp, surf_zseggridpp = \
-            ims.flatten(surf_xseggridp, surf_yseggridp, surf_zseggridp, Rotxp)
-
-
-        # Trying out the polyval2d
-        surf_zseggrid_theory_long = ims.polyval2d( \
-                                        surf_xseggrid.reshape(nysegment*nxsegment), \
-                                        surf_yseggrid.reshape(nysegment*nxsegment), \
-                                        m)
-        surf_zseggrid_theory = surf_zseggrid_theory_long.reshape(nysegment,nxsegment)
-        #surf_zseggrid_theory -= z0
-        surf_xseggridp_theory, surf_yseggridp_theory, surf_zseggridp_theory = \
-            ims.flatten(surf_xseggrid, surf_yseggrid, surf_zseggrid_theory, Roty)
-        surf_xseggridpp_theory, surf_yseggridpp_theory, surf_zseggridpp_theory = \
-            ims.flatten(surf_xseggridp_theory, surf_yseggridp_theory, surf_zseggridp_theory, Rotxp)
-
-        # Now rotate
-        deltay = surf_yseggridpp_theory[0,-1]-surf_yseggridpp_theory[0,0]
-        deltax = surf_xseggridpp_theory[0,-1]-surf_xseggridpp_theory[0,0]
-        thetazpp = -np.arctan(deltay/deltax)*180/np.pi;
-        Rotzpp = ims.myrotation_matrix([0,0,1], thetazpp)
-        surf_xseggridppp, surf_yseggridppp, surf_zseggridppp = \
-            ims.flatten(surf_xseggridpp, surf_yseggridpp, surf_zseggridpp, Rotzpp)
-        surf_xseggridppp_theory, surf_yseggridppp_theory, surf_zseggridppp_theory = \
-            ims.flatten(surf_xseggridpp_theory, surf_yseggridpp_theory, surf_zseggridpp_theory, Rotzpp)
-
-        # Now we have to extract an orthogonal subset
-        dxsub = dysub = dx
-        xsubstart = np.max(surf_xseggridppp_theory[[0,-1],0])+dxsub*2
-        xsubstop = np.min(surf_xseggridppp_theory[[0,-1],-1])-dxsub*2
-        ysubstart = np.max(surf_yseggridppp_theory[0,[0,-1]])+dysub*2
-        ysubstop = np.min(surf_yseggridppp_theory[-1,[0,-1]])-dysub*2
-        xsub = np.arange(xsubstart,xsubstop,dxsub)
-        ysub = np.arange(ysubstart,ysubstop,dysub)
-        sub_xseggrid, sub_yseggrid = np.meshgrid(xsub,ysub) # 1st index is y, 2nd is x
-        nsuby, nsubx = np.shape(sub_xseggrid)
-        surf_xseggridppp_theory_long = np.reshape(surf_xseggridppp_theory,nysegment*nxsegment)
-        surf_yseggridppp_theory_long = np.reshape(surf_yseggridppp_theory,nysegment*nxsegment)
-        points = np.vstack((surf_xseggridppp_theory_long,surf_yseggridppp_theory_long)).T # rows are x,y pairs
-        values = np.reshape(surf_zseggridppp,nysegment*nxsegment)
-        sub_zseggrid_long = griddata(points, values, (sub_xseggrid, sub_yseggrid), method='cubic')
-        sub_zseggrid = np.reshape(sub_zseggrid_long,(nsuby, nsubx))
-
-        # Now we get the heights relative to a reference
-        zreference = np.median(sub_zseggrid)
-        
-#         # Accumulate the binned data
-#         if isegment in accumlist:
-            
-
-        # Get out
-        return sub_zseggrid
-
-def getrhoofz2(sollast_in,dx,dy,nbins=10,Z2bins=[],transposeflag=False,levels=0):
-
-    # Transpose, if flagged
-    if transposeflag:
-        sollast = sollast_in.T
-    else:
-        sollast = sollast_in
-    
-    # Dimensions 
-    Nx, Ny = np.shape(sollast)
-    
-    # Calculate the gradient squared (Z2)
-    dzdx = np.diff(sollast, axis=0)/dx
-    dzdy = np.diff(sollast, axis = 1)/dy #we are not sure which axis is which
-    Z2 = dzdx[:, 1:]**2+dzdy[1:, :]**2
-    
-    # Get the probability distribution
-    Z2flat = np.reshape(Z2, (Nx-1)*(Ny-1))
-    counts, newbins, meanZ2, error = getrhoofz2flat(Z2flat,nbins,Z2bins,levels)
-    
-    # Get out
-    return counts, newbins, meanZ2, Z2flat, error
-    
-def getmeanz2(sollast,dx,dy):
-
-    # Dimensions 
-    Nx, Ny = np.shape(sollast)
-    
-    # Calculate the gradient squared (Z2)
-    dzdx = np.diff(sollast, axis=0)/dx
-    dzdy = np.diff(sollast, axis = 1)/dy #we are not sure which axis is which
-    Z2 = dzdx[:, 1:]**2+dzdy[1:, :]**2
-    
-    # Get the mean
-    meanZ2 = np.mean(Z2)
-    
-    # Get out
-    return meanZ2
-    
-def getrhoofz2flat(Z2flat,nbins,Z2bins,levels):
-
-    # Average of Z2
-    meanZ2 = np.mean(Z2flat)
-    
-    # Do the histogramming
-    if len(Z2bins)==0:
-            counts, bins = np.histogram(Z2flat,bins=nbins)
-    else:
-            counts, bins = np.histogram(Z2flat,bins=Z2bins)
-    Z2bins = bins
-    
-    # Loop over subsets to get an uncertainty analysis
-    if (levels > 0):
-        print('Original = ', np.size(Z2flat))
-        for ilevel in range(levels):
-            ilevelp = ilevel+2
-            counts_accum = []
-            for modfactor in range(ilevelp):
-                Z2flat_subset = Z2flat[modfactor::ilevelp]
-                counts, bins = np.histogram(Z2flat_subset,bins=Z2bins)
-                if ilevelp == levels+1:
-                    print(ilevelp,modfactor,np.size(Z2flat_subset),counts)
-                if(modfactor == 0):
-                    counts_accum = counts
-                else:
-                    counts_accum = np.vstack((counts_accum,counts))
-    newbins = Z2bins[0:-1]
-    
-    # Fake normalizing
-    if (levels == 0):    
-        normalizer = np.sum(counts)
-        counts = counts/normalizer
-        error = 0
-    else:
-        counts = np.mean(counts_accum,axis=0)
-        normalizer = np.sum(counts)
-        counts = counts/normalizer
-        print('ilevelp =', ilevelp)
-        tval = tvalue.interval(0.95, ilevelp, loc=0, scale=1)[1]
-        print('ilevelp, t =', ilevelp, tval)
-        error = np.std(counts_accum,axis=0)/np.sqrt(ilevelp)/normalizer*tval
-
-    return counts, newbins, meanZ2, error
-
 def retrievesegment(\
     nx1,ny1,nx2,ny2,cA,cB,cC,cD,\
     Sa,Se,z_start,maxiter,tolerance,\
@@ -946,6 +763,7 @@ def retrievesegment(\
 
     # Pack these into a vector
     nXobs = np.size(cA_obs)
+    #nobs = nXobs*4; print "# of observations", nobs
     caxis = 0 # This was 1
     cA_obs_long = reshape(cA_obs,nXobs,caxis)
     cB_obs_long = reshape(cB_obs,nXobs,caxis)
@@ -980,141 +798,129 @@ def retrievesegment(\
     # Done
     return z_retrieved
 
-def retrievesegmentwithshrinking(\
-    xarr,yarr,shrinkconfidence,minimumdim,\
-    nx2,ny2,cA,cB,cC,cD,\
-    apriorivar,noiseamp,maxiter,tolerance,\
-    Nx,Ny,\
-    Arule, Brule, Crule, Drule,\
-    KAxrule, KAyrule, \
-    KBxrule, KByrule, \
-    KCxrule, KCyrule, \
-    KDxrule, KDyrule):
-
-    # Other copies
-    nx1=ny1=0
-    nx = nx2-nx1+1
-    ny = ny2-ny1+1
-    xarr_orig = copy.copy(xarr)
-    yarr_orig = copy.copy(yarr)
-    ny_orig = copy.copy(ny)
-    nx_orig = copy.copy(nx)
-
-    # Extract the image data of the subset of interest
-    cA_obs = cA[ny1:ny2,nx1:nx2].astype('float')
-    cB_obs = cB[ny1:ny2,nx1:nx2].astype('float')
-    cC_obs = cC[ny1:ny2,nx1:nx2].astype('float')
-    cD_obs = cD[ny1:ny2,nx1:nx2].astype('float')
-
-    # Scale down if needed
-    cseg = [cA_obs,cB_obs,cC_obs,cD_obs]
-    #     print('from retrievesegmentwithshrinking:')
-    #     print(np.shape(xarr),np.shape(yarr),np.shape(cseg),np.shape(cseg[0]))
-    xarr,yarr,cseg = scaledown(xarr,yarr,cseg,shrinkconfidence,minimumdim)
+# def retrieveall(\
+#         nmax,maxiter,tolerance,rootnoiseamp,rootapriorivar0,\
+#         nsegments,nptsx,nptsy,nx1list,ny1list,nx2list,ny2list,nyxgrid,dx,dy,\
+#         Calibration,cA,cB,cC,cD):
     
-    # Unpack
-    cA_obs = cseg[0]
-    cB_obs = cseg[1]
-    cC_obs = cseg[2]
-    cD_obs = cseg[3]
+#     # Extract calibration data
+#     pA=Calibration['Calibration']['pA']
+#     pB=Calibration['Calibration']['pB']
+#     pC=Calibration['Calibration']['pC']
+#     pD=Calibration['Calibration']['pD']
+
     
-    # Number of observations, etc
-    nXobs = np.size(cA_obs)
-    ny,nx = cA_obs.shape; 
-    nobs = (nx-1)*(ny-1)*4; print('nobs =', nobs) # Number of observations
-    nzpts = ny*nx-1
+#     # Set up a grid of surface normal vectors and the backscatter response on them
+#     nxmid = int(nptsx/2); #print nxmid
+#     nymid = int(nptsy/2); #print nymid
+#     nxi = np.linspace(-nmax,nmax,nptsx); dnx = nxi[1]-nxi[0]
+#     nyi = np.linspace(-nmax,nmax,nptsy); dny = nyi[1]-nyi[0]
+#     nxigrid,nyigrid = np.meshgrid(nxi,nyi)
+#     theta = 15*np.pi/180
+#     sA = (-nxigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+#     sB = (-nyigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+#     sC = (+nxigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
+#     sD = (+nyigrid*np.sin(theta)+np.cos(theta)-1)/(1+nxigrid**2+nyigrid**2)**.5
 
-    # Pack these into a vector
-    caxis = 0 # This was 1
-    cA_obs_long = reshape(cA_obs,nXobs,caxis)
-    cB_obs_long = reshape(cB_obs,nXobs,caxis)
-    cC_obs_long = reshape(cC_obs,nXobs,caxis)
-    cD_obs_long = reshape(cD_obs,nXobs,caxis)
-    c_obs_stacked = vstack((cA_obs_long,cB_obs_long,cC_obs_long,cD_obs_long))
-    c_obs_long = matrix(reshape(c_obs_stacked.T,(nXobs*4,1)), copy=False)
+#     # Set up the grids     
+#     BSgridA = np.polyval(pA,sA)
+#     BSgridB = np.polyval(pB,sB)
+#     BSgridC = np.polyval(pC,sC)
+#     BSgridD = np.polyval(pD,sD)
+                
+#     # Generating the response function for each detector
+#     BSgridN = [BSgridA, BSgridB, BSgridC, BSgridD]
+#     BSgridL = ['A', 'B', 'C', 'D']
+#     BSmax = 150 # this for display purposes
+#     print('nxigrid.shape=',nxigrid.shape)
 
-    # Print some statistics of the observations
-    print ("Observed intensities (detector B):")
-    print ("mean, max, min =", np.mean(cB_obs_long),np.max(cB_obs_long),np.min(cB_obs_long))
+#     # Set up interpolators for detector responses
+#     Arule, Brule, Crule, Drule, \
+#     KAxrule, KAyrule, KBxrule, KByrule, KCxrule, KCyrule, KDxrule, KDyrule =\
+#     setupdetectorresponse2(BSgridA, BSgridB, BSgridC, BSgridD, nxi, nyi, dnx, dny)
+                
+#     # Create a blank slate
+#     solutionshape = cA.shape
+#     solution = np.zeros(solutionshape)
+                
+#     # Define the variance in the observations (BS units^2)
+#     #print('Std deviation in input signal is', rootnoiseamp)
+#     noiseamp = rootnoiseamp**2
 
-    # Extract the a priori variance
-    vartemp = apriorivar[0:ny,0:nx]
-    vartemp_long = np.reshape(vartemp,nzpts+1,0)
-    Sa = np.diag(vartemp_long[:-1]); #print "apriorivar", shape(Sa)
+#     # Define parameters determining the variance in the a priori (microns^2)
+#     #print('Std deviation in a priori is', rootapriorivar0)
+#     apriorivar0 = rootapriorivar0**2
 
-    # Construct the variance in observation + model
-    Se = np.matrix(np.eye(nobs))*noiseamp # Variance in observation + model (c)
+#     # Create the initial a priori variance
+#     apriorivar = np.ones(cA.shape)*apriorivar0
 
-    # Set-up for the inversion
-    Sa_inv = np.diag(1/np.diag(Sa))
-    Se_inv = np.diag(1/np.diag(Se))
+#     # Create the initial a priori set
+#     aprioriset = np.zeros(cA.shape)
+                
+#     # Loop to retrieve each segment
+#     for isegment in range(nsegments):
 
-    # Create a blank slate
-    solution = np.zeros(cA_obs.shape)
-    settemp = copy.copy(solution)
-    settemp_long = np.reshape(settemp,nzpts+1,0)
-    settemp_longminus1 = settemp_long[:-1]
-    z_start = np.matrix(settemp_longminus1).T; #print "aprioriset", shape(z_start)
-    z_start = z_start*0.0; #print "aprioriset", shape(z_start)
+#         # Choose the particular location of the dataset to analyze
+#         nx1=nx1list[isegment]; nx2=nx2list[isegment]; nx = nx2-nx1+1
+#         ny1=ny1list[isegment]; ny2=ny2list[isegment]; ny = ny2-ny1+1
 
-    # Make the starting value the a priori
-    za = copy.copy(z_start)
-    
-    # Height retrieval
-    z_next = getnextz_iterate(\
-            z_start, za, c_obs_long, maxiter, tolerance,\
-            Nx,Ny,nx,ny,nXobs,\
-            Se_inv,Sa_inv,\
-            Arule, Brule, Crule, Drule,\
-            KAxrule, KAyrule, \
-            KBxrule, KByrule, \
-            KCxrule, KCyrule, \
-            KDxrule, KDyrule)
-    z_retrieved_long = vstack((z_next,z_next[-1]))
-    z_retrieved = reshape(z_retrieved_long,(ny,nx))
+#         # Construct gradients
+#         Ny_unscaled, Nx_unscaled = gds.makeNxNy(ny,nx)
+#         Ny = Ny_unscaled/dy
+#         Nx = -Nx_unscaled/dx #fixing x inversion
 
-    # Restore to original size
-    interpz = interp2d(xarr, yarr, z_retrieved, kind='linear') # Expands back out to the original size
-    solution_interpolated = interpz(xarr_orig,yarr_orig)
-    surf_xgrid, surf_ygrid = np.meshgrid(xarr_orig,yarr_orig) # Makes grids to match the solution
-    
-    # Done
-    return surf_xgrid, surf_ygrid, z_retrieved
+#         # Number of observations
+#         nobs = (nx-1)*(ny-1)*4
 
-def shrink(xarr,yarr,cseg):
-    Nx_new = int(len(xarr)/2); Ny_new = int(len(yarr)/2)
-    xarr_new = np.linspace(xarr[0],xarr[-1],Nx_new)
-    yarr_new = np.linspace(yarr[0],yarr[-1],Ny_new)
-    interpA = interp2d(xarr, yarr, cseg[0], kind='linear'); cseg[0] = interpA(xarr_new,yarr_new)
-    interpB = interp2d(xarr, yarr, cseg[1], kind='linear'); cseg[1] = interpB(xarr_new,yarr_new)
-    interpC = interp2d(xarr, yarr, cseg[2], kind='linear'); cseg[2] = interpC(xarr_new,yarr_new)
-    interpD = interp2d(xarr, yarr, cseg[3], kind='linear'); cseg[3] = interpD(xarr_new,yarr_new)
-    return xarr_new, yarr_new, cseg
+#         # Number of desired points (heights)
+#         nzpts = ny*nx-1
 
-def scaledown(xarr,yarr,cseg,shrinkconfidence,minimumdim):
-    # Evaluate the information score
-    infoscore = sts.getinfoscore(cseg); print('Correlation score =', infoscore)
-    ny, nx = np.shape(cseg[0])
-    benchmark = sts.randomcorrelation(np.size(yarr),np.size(xarr))*6**.5*100
-    print('Benchmark random signals =', benchmark)
-    Nshrink=10
-    for ishrink in range(Nshrink):
+#         # Extract the a priori variance
+#         vartemp = apriorivar[ny1:ny2+1,nx1:nx2+1]
+#         vartemp_long = np.reshape(vartemp,nzpts+1,0)
+#         Sa = np.diag(vartemp_long[:-1]); #print "apriorivar", shape(Sa)
 
-        # Exit if criteria are met
-        print ('ishrink = ', ishrink)
-        if(infoscore > benchmark*shrinkconfidence):
-            print('Stopping shrinking b/c infoscore is =', infoscore)
-            break
-        if np.min(np.shape(cseg[0])) <= minimumdim:
-            print('Stopping shrinking b/c dimension reached =', np.shape(cseg[0]))
-            break
+#         # Extract the starting z
+#         settemp = solution[ny1:ny2+1,nx1:nx2+1]
+#         settemp_long = np.reshape(settemp,nzpts+1,0)
+#         settemp_longminus1 = settemp_long[:-1]
+#         z_start = np.matrix(settemp_longminus1).T; #print "aprioriset", shape(z_start)
+#         z_start = z_start*0.0; #print "aprioriset", shape(z_start)
 
-        # Otherwise, shrink
-        xarr, yarr, cseg = shrink(xarr,yarr,cseg); print('Shape of observations:', np.shape(cseg[0]))
-        infoscore = sts.getinfoscore(cseg); print('Correlation score =', infoscore)
-        benchmark = sts.randomcorrelation(np.size(yarr),np.size(xarr))*6**.5*100
-        print('Benchmark random signals =', benchmark)
-    
-    # Get out
-    return xarr,yarr,cseg
+#         # Construct the variance in observation + model
+#         Se = np.matrix(np.eye(nobs))*noiseamp # Variance in observation + model (c)
+
+#         # Do the retrieval
+#         print('')
+#         print("for", nx1, ny1)
+#         print("Segment:", isegment+1, "of", nsegments)
+#         z_retrieved = retrievesegment(\
+#             nx1,ny1,nx2,ny2,cA,cB,cC,cD,\
+#             Sa,Se,z_start,maxiter,tolerance,\
+#             Nx,Ny,\
+#             Arule, Brule, Crule, Drule,\
+#             KAxrule, KAyrule, \
+#             KBxrule, KByrule, \
+#             KCxrule, KCyrule, \
+#             KDxrule, KDyrule)
+
+#         if isegment == 0:
+#             solution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+#         else:
+#             nextsolution = np.zeros(cA.shape)
+#             nextsolution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+#             overlap = []
+#             for i in range(isegment):
+#                 nextoverlap = list( set(nyxgrid[i])&set(nyxgrid[isegment]) )
+#                 overlap = overlap + nextoverlap
+#                 Noverlap = len(overlap); 
+#             print("Noverlap =", Noverlap)
+#             diff = 0.0
+#             for j in range(Noverlap):
+#                 diff += nextsolution[overlap[j]] - solution[overlap[j]]
+#             diffavg = diff/Noverlap
+#             z_retrieved -= diffavg
+#             solution[ny1:ny2+1,nx1:nx2+1] = copy.copy(z_retrieved)
+            
+#     return solution
 
