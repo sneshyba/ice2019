@@ -3,12 +3,14 @@ from scipy import misc
 import os
 import copy
 import numpy as np
+import imageio      #misc.mread deprecated (trying to fix)
 from PIL import Image, ImageFont, ImageDraw
 from scipy.interpolate import griddata
 
 
 def getval2(Filename): #gets pixel values for a single bmp image
-    value = misc.imread(Filename)
+#    value = misc.imread(Filename)  # misc.imread has been deprecated, replacing with recommended substitute
+    value = imageio.imread(Filename)
     Nx,Nz = value.shape
     return value, Nx, Nz, Filename
     
